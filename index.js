@@ -1,5 +1,8 @@
 var TIMEOUT_IN_SECS = 3 * 60
+var TIMEOUT_ALERT_IN_SECS = 30
 var TEMPLATE = '<h1><span class="js-timer-minutes">00</span>:<span class="js-timer-seconds">00</span></h1>'
+var TIMER_PHRASES = ["Time is money", "Time and tide wait for no man", "One day is worth two tomorrow", "What may be done at any time will be done at no time"]
+
 
 function padZero(number){
   return ("00" + String(number)).slice(-2);
@@ -36,7 +39,7 @@ class Timer{
       return this.timeout_in_secs
     var currentTimestamp = this.getTimestampInSecs()
     var secsGone = currentTimestamp - this.timestampOnStart
-    return Math.max(this.timeout_in_secs - secsGone, 0)
+    return this.timeout_in_secs - secsGone
   }
 }
 
@@ -52,8 +55,7 @@ class TimerWidget{
 
     // adds HTML tag to current page
     this.timerContainer = document.createElement('div')
-
-    this.timerContainer.setAttribute("style", "height: 100px;")
+    this.timerContainer.setAttribute("style", "position: fixed;top: 20px;left: 10px;z-index: 1000;")
     this.timerContainer.innerHTML = TEMPLATE
 
     rootTag.insertBefore(this.timerContainer, rootTag.firstChild)
@@ -76,18 +78,32 @@ class TimerWidget{
   }
 }
 
-
 function main(){
 
   var timer = new Timer(TIMEOUT_IN_SECS)
   var timerWiget = new TimerWidget()
   var intervalId = null
 
-  timerWiget.mount(document.body)
+  timerWiget.mount(document.body);
 
   function handleIntervalTick(){
     var secsLeft = timer.calculateSecsLeft()
-    timerWiget.update(secsLeft)
+    var secsToShow = calcSecsToShow(secsLeft)
+    if(isNowAlertTime(secsLeft))
+      alertRandomPhrase()
+    timerWiget.update(secsToShow)
+  }
+
+  function isNowAlertTime(secsLeft){
+    if(secsLeft >= 0)
+      return false
+    return !(secsLeft % TIMEOUT_ALERT_IN_SECS)
+  }
+
+  function calcSecsToShow(secsLeft){
+    if(secsLeft <= 0) 
+      return 0
+    return secsLeft
   }
 
   function handleVisibilityChange(){
@@ -99,6 +115,10 @@ function main(){
       timer.start()
       intervalId = intervalId || setInterval(handleIntervalTick, 300)
     }
+  }
+
+  function alertRandomPhrase(){
+    alert(TIMER_PHRASES[Math.floor(TIMER_PHRASES.length*Math.random())]);
   }
 
   // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
